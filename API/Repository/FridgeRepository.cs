@@ -1,8 +1,5 @@
 ﻿using API.Models;
-using API.Controllers;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace API.Repository
 {
@@ -14,15 +11,9 @@ namespace API.Repository
 
         public async Task<Fridge> Create(Fridge fridge)
         {
-            _context.Fridges.Add(new Fridge()
-            {
-                Id = fridge.Id,
-                Name = fridge.Name,
-                OwnerName= fridge.OwnerName,
-                ModelId= fridge.ModelId
-            });
+            _context.Fridges.Add(fridge);
             await _context.SaveChangesAsync();
-            return fridge;
+            return fridge; 
         }
 
         public async Task<IEnumerable<Fridge>> GetAll() => await _context.Fridges.ToListAsync();
