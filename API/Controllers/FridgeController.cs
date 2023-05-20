@@ -1,11 +1,8 @@
-﻿using API.Models;
+﻿using API.DTO;
+using API.Models;
 using API.Repository;
-using API.Controllers;
+using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Text.Json;
-
-// For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
 namespace API.Controllers
 {
@@ -13,37 +10,33 @@ namespace API.Controllers
     [ApiController]
     public class FridgeController : ControllerBase
     {
-        public readonly IFridgeRepository _repository;
-        public FridgeController(IFridgeRepository repository) => _repository = repository;
+        private readonly IFridgeRepository _repository;
+        private readonly IMapper _mapper;
 
-        // GET: api/<FridgeController>
+        public FridgeController(IFridgeRepository repository, IMapper mapper)
+            => (_repository, _mapper) = (repository, mapper);
+
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Fridge>>> GetAsync()
-        {
-            var fridge = await _repository.GetAll();
-            return Ok(fridge);
-        }
-        // GET api/<FridgeController>/5
+        public async Task<ActionResult<IEnumerable<FridgeDTO>>> GetAsync()
+            => Ok(_mapper.Map<List<FridgeDTO>>(await _repository.GetAll()));
+        
         [HttpGet("{id}")]
-        public async Task<ActionResult<IEnumerable<Fridge>>> Get(Guid id)
-        {
-            var FindFridge = await _repository.GetFridgeToId(id);
-            return Ok(FindFridge);
-        }
+        public async Task<ActionResult<IEnumerable<FridgeDTO>>> Get([FromRoute]string id)
+            => Ok(_mapper.Map<FridgeDTO>(await _repository.GetFridgeToId(Guid.Parse(id))));
 
-        // POST api/<FridgeController>
         [HttpPost]
-        public async Task <ActionResult<Fridge>> AddFridge(Fridge fridge)
+        public async Task<ActionResult> AddFridge([FromBody] CreateFridgeDTO fridgeDTO)
         {
-            await _repository.Create(fridge);
-            if(fridge != null)
+            var fridge = _mapper.Map<Fridge>(fridgeDTO);
+            var createdFridge = await _repository.Create(fridge);
+            if (createdFridge != null)
             {
-                return CreatedAtAction("GetProduct", new { id = fridge.Id }, fridge);
+                return Ok();
             }
-            return NoContent();
+
+            return BadRequest("Cant save fridge");
         }
 
-        //// PUT api/<FridgeController>/5
         [HttpPut("{id}")]
         public async Task<ActionResult> Put([FromBody] Fridge fridge)
         {
@@ -55,12 +48,11 @@ namespace API.Controllers
             return Ok(Updater);
         }
 
-        // DELETE api/<FridgeController>/5
         [HttpDelete("{id}")]
         public async Task<ActionResult> Delete(Guid id)
         {
-            var DeleteFridge = await _repository.DeleteFridge(new Fridge());
-            if (!DeleteFridge)
+            var isDeleted = await _repository.DeleteFridge(new Fridge());
+            if (!isDeleted)
                 return NotFound();
             else
                 return NoContent();
